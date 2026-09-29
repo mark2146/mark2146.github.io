@@ -52,3 +52,61 @@ document.addEventListener('keydown', (event) => {
 window.addEventListener('resize', () => {
   if (window.innerWidth > 700) closeNavigation();
 });
+
+const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const scrollProgress = document.querySelector('.scroll-progress');
+function updateScrollProgress() {
+  if (!scrollProgress) return;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? (window.scrollY / docHeight) * 100 : 0;
+  scrollProgress.style.width = `${progress}%`;
+}
+updateScrollProgress();
+window.addEventListener('scroll', updateScrollProgress, { passive: true });
+window.addEventListener('resize', updateScrollProgress);
+
+const revealTargets = document.querySelectorAll(
+  '.section-block, .publication, .news-list li, .projects article, .detail-role, .honors-list li, .awards-grid a'
+);
+
+if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+  revealTargets.forEach((el) => el.classList.add('reveal', 'visible'));
+} else {
+  revealTargets.forEach((el, index) => {
+    el.classList.add('reveal');
+    el.style.transitionDelay = `${(index % 6) * 60}ms`;
+  });
+
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+  );
+
+  revealTargets.forEach((el) => revealObserver.observe(el));
+}
+
+const spySections = document.querySelectorAll('main.layout section[id]');
+const spyNavLinks = document.querySelectorAll('.site-header nav a[href^="#"]');
+
+if (spySections.length && spyNavLinks.length && 'IntersectionObserver' in window) {
+  const spyObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const link = document.querySelector(`.site-header nav a[href="#${entry.target.id}"]`);
+        if (!link || !entry.isIntersecting) return;
+        spyNavLinks.forEach((l) => l.classList.remove('active'));
+        link.classList.add('active');
+      });
+    },
+    { rootMargin: '-45% 0px -50% 0px' }
+  );
+  spySections.forEach((section) => spyObserver.observe(section));
+}
